@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.json">
+<title>Building Manager</title>
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#64748b;--accent:#2563eb;--danger:#dc2626;--ok:#16a34a;--line:#e2e8f0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:80px}
+header{background:#0f172a;color:white;padding:20px 18px 18px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:22px}header p{margin:5px 0 0;color:#cbd5e1;font-size:13px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:11px 3px;color:var(--muted);font-size:11px}nav button.active{color:var(--accent);font-weight:700}
+main{max-width:760px;margin:auto;padding:16px}.page{display:none}.page.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:0 1px 2px #00000008}
+.stat{font-size:23px;font-weight:800;margin-top:4px}.label{font-size:12px;color:var(--muted)}.green{color:var(--ok)}.red{color:var(--danger)}
+h2{font-size:18px;margin:8px 0 14px}h3{font-size:15px;margin:0 0 10px}
+button,.btn{border:0;border-radius:10px;background:var(--accent);color:white;padding:11px 14px;font-weight:600;cursor:pointer}.secondary{background:#e2e8f0;color:#0f172a}.danger{background:#fee2e2;color:#991b1b}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.row+.row{margin-top:10px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white}label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.pill{font-size:11px;padding:5px 8px;border-radius:999px;background:#e2e8f0}.paid{background:#dcfce7;color:#166534}.pending{background:#fee2e2;color:#991b1b}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px 5px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted)}
+.empty{padding:25px;text-align:center;color:var(--muted)}.small{font-size:12px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;z-index:20}.modal.show{display:flex}.sheet{background:#fff;width:100%;max-height:90vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}.sheet h2{margin-top:0}
+.toast{position:fixed;left:50%;bottom:85px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 14px;border-radius:10px;display:none;z-index:30;font-size:13px}
+@media(min-width:700px){nav{position:static;max-width:760px;margin:auto;border:0;background:transparent}nav button{padding:8px}.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header><h1>🏢 Building Manager</h1><p>17 Flats • Maintenance & Expense Tracker</p></header>
+<main>
+<section id="dashboard" class="page active">
+<h2>Dashboard</h2>
+<div class="grid">
+<div class="card"><div class="label">Maintenance Collected</div><div id="sCollected" class="stat green">₹0</div></div>
+<div class="card"><div class="label">Pending</div><div id="sPending" class="stat red">₹0</div></div>
+<div class="card"><div class="label">Expenses</div><div id="sExpense" class="stat red">₹0</div></div>
+<div class="card"><div class="label">Balance</div><div id="sBalance" class="stat">₹0</div></div>
+</div>
+<div class="card"><div class="row"><h3>Quick Actions</h3></div><div class="actions">
+<button onclick="openMaintenance()">+ Maintenance</button><button onclick="openExpense()">+ Expense</button><button class="secondary" onclick="showPage('flats')">View Flats</button>
+</div></div>
+<div class="card"><h3>Recent Expenses</h3><div id="recentExpenses"></div></div>
+</section>
+
+<section id="flats" class="page">
+<h2>Flats</h2>
+<div class="card"><div class="row"><div><b>Monthly Maintenance</b><div class="small">Default: ₹1,000 per flat</div></div><button onclick="setMaintenance()">Change</button></div></div>
+<div id="flatList"></div>
+</section>
+
+<section id="maintenance" class="page">
+<h2>Maintenance</h2>
+<div class="card"><button onclick="openMaintenance()">+ Record Payment</button></div>
+<div class="card"><table><thead><tr><th>Flat</th><th>Month</th><th>Amount</th><th>Status</th></tr></thead><tbody id="maintenanceTable"></tbody></table></div>
+</section>
+
+<section id="expenses" class="page">
+<h2>Expenses</h2>
+<div class="card"><button onclick="openExpense()">+ Add Expense</button></div>
+<div class="card"><table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th></tr></thead><tbody id="expenseTable"></tbody></table></div>
+</section>
+
+<section id="reports" class="page">
+<h2>Reports & Data</h2>
+<div class="card"><h3>Current Summary</h3><div id="reportSummary"></div></div>
+<div class="card"><h3>Backup</h3><p class="small">Your data is stored on this device. Export a backup regularly.</p><div class="actions"><button onclick="exportData()">Export Backup</button><button class="secondary" onclick="document.getElementById('importFile').click()">Import Backup</button><input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)"></div></div>
+<div class="card"><h3>Reset</h3><button class="danger" onclick="resetData()">Reset all app data</button></div>
+</section>
+</main>
+
+<nav>
+<button data-page="dashboard" class="active">🏠<br>Dashboard</button>
+<button data-page="flats">🏢<br>Flats</button>
+<button data-page="maintenance">💰<br>Maintenance</button>
+<button data-page="expenses">🧾<br>Expenses</button>
+<button data-page="reports">📊<br>Reports</button>
+</nav>
+
+<div id="modal" class="modal"><div class="sheet"><div class="row"><h2 id="modalTitle">Add</h2><button class="secondary" onclick="closeModal()">Close</button></div><div id="modalBody"></div></div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const KEY="building_manager_v1";
+const defaultData={maintenanceRate:1000, flats:Array.from({length:17},(_,i)=>({id:String(101+i),name:"Flat "+(101+i)})), payments:[], expenses:[]};
+let data=load();
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||structuredClone(defaultData)}catch(e){return structuredClone(defaultData)}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function money(n){return "₹"+Number(n||0).toLocaleString("en-IN")}
+function toast(s){let e=document.getElementById("toast");e.textContent=s;e.style.display="block";setTimeout(()=>e.style.display="none",1800)}
+function showPage(id){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===id));render()}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+function totals(){let collected=data.payments.reduce((s,x)=>s+Number(x.amount),0), expenses=data.expenses.reduce((s,x)=>s+Number(x.amount),0), pending=Math.max(0,data.flats.length*data.maintenanceRate-collected);return {collected,expenses,pending,balance:collected-expenses}}
+function render(){
+ let t=totals();document.getElementById("sCollected").textContent=money(t.collected);document.getElementById("sPending").textContent=money(t.pending);document.getElementById("sExpense").textContent=money(t.expenses);document.getElementById("sBalance").textContent=money(t.balance);
+ let r=document.getElementById("recentExpenses");r.innerHTML=data.expenses.slice().reverse().slice(0,5).map(x=>`<div class="row"><span>${x.category}<div class="small">${x.vendor||"—"} • ${x.date}</div></span><b>${money(x.amount)}</b></div>`).join("")||'<div class="empty">No expenses yet</div>';
+ document.getElementById("flatList").innerHTML=data.flats.map(f=>{let paid=data.payments.some(p=>p.flat===f.id&&p.month===monthKey());return `<div class="card"><div class="row"><div><b>${f.name}</b><div class="small">${paid?"Paid":"Pending"} • ${monthKey()}</div></div><span class="pill ${paid?"paid":"pending"}">${paid?money(data.payments.find(p=>p.flat===f.id&&p.month===monthKey()).amount):money(data.maintenanceRate)}</span></div></div>`}).join("");
+ document.getElementById("maintenanceTable").innerHTML=data.payments.slice().reverse().map(p=>`<tr><td>${p.flat}</td><td>${p.month}</td><td>${money(p.amount)}</td><td><span class="pill paid">Paid</span></td></tr>`).join("")||'<tr><td colspan="4" class="empty">No payments</td></tr>';
+ document.getElementById("expenseTable").innerHTML=data.expenses.slice().reverse().map((x,i)=>`<tr><td>${x.date}</td><td>${x.category}</td><td>${x.vendor||"—"}</td><td>${money(x.amount)}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">No expenses</td></tr>';
+ document.getElementById("reportSummary").innerHTML=`<p>Maintenance collected: <b>${money(t.collected)}</b></p><p>Total expenses: <b>${money(t.expenses)}</b></p><p>Current balance: <b>${money(t.balance)}</b></p><p>Expected monthly maintenance: <b>${money(data.flats.length*data.maintenanceRate)}</b></p><p>Pending based on current month: <b>${money(data.flats.filter(f=>!data.payments.some(p=>p.flat===f.id&&p.month===monthKey())).length*data.maintenanceRate)}</b></p>`;
+}
+function monthKey(){let d=new Date();return d.toLocaleString("en-IN",{month:"short",year:"numeric"})}
+function openMaintenance(){
+ document.getElementById("modalTitle").textContent="Record Maintenance";
+ document.getElementById("modalBody").innerHTML=`<label>Flat</label><select id="mFlat">${data.flats.map(f=>`<option value="${f.id}">${f.name}</option>`).join("")}</select><label>Month</label><input id="mMonth" value="${monthKey()}"><label>Amount</label><input id="mAmount" type="number" value="${data.maintenanceRate}"><label>Payment date</label><input id="mDate" type="date" value="${new Date().toISOString().slice(0,10)}"><br><br><button onclick="addPayment()">Save Payment</button>`;
+document.getElementById("modal").classList.add("show")}
+function addPayment(){data.payments.push({flat:document.getElementById("mFlat").value,month:document.getElementById("mMonth").value,amount:Number(document.getElementById("mAmount").value),date:document.getElementById("mDate").value});save();closeModal();toast("Maintenance saved")}
+function openExpense(){document.getElementById("modalTitle").textContent="Add Expense";document.getElementById("modalBody").innerHTML=`<label>Category</label><select id="eCat"><option>Electricity</option><option>Garbage</option><option>Electrician</option><option>Plumber</option><option>Cleaning</option><option>Repair</option><option>Other</option></select><label>Vendor / Paid to</label><input id="eVendor" placeholder="e.g. Amit Electrician"><label>Amount</label><input id="eAmount" type="number" placeholder="0"><label>Date</label><input id="eDate" type="date" value="${new Date().toISOString().slice(0,10)}"><label>Notes</label><textarea id="eNote" placeholder="Details"></textarea><br><br><button onclick="addExpense()">Save Expense</button>`;document.getElementById("modal").classList.add("show")}
+function addExpense(){let amount=Number(document.getElementById("eAmount").value);if(!amount)return toast("Enter amount");data.expenses.push({category:document.getElementById("eCat").value,vendor:document.getElementById("eVendor").value,amount,date:document.getElementById("eDate").value,note:document.getElementById("eNote").value});save();closeModal();toast("Expense saved")}
+function setMaintenance(){let v=prompt("Monthly maintenance per flat",data.maintenanceRate);if(v&&Number(v)>0){data.maintenanceRate=Number(v);save();toast("Maintenance updated")}}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
+function exportData(){let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="building-manager-backup.json";a.click();URL.revokeObjectURL(a.href)}
+function importData(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);save();toast("Backup imported")}catch(x){toast("Invalid backup")}};r.readAsText(f)}
+function resetData(){if(confirm("Delete all building data from this device?")){localStorage.removeItem(KEY);data=load();render();toast("Data reset")}}
+render();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body></html>
